@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
+  <title>Puntuador de risa</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+</head>
+
+<body>
+
+  <div class="px-4 py-5 my-5 text-center">
+    <p class="display-2">😂</p>
+    <h1 class="display-5 fw-bold text-body-emphasis">Puntuador de risa</h1>
+    <div class="col-lg-6 mx-auto">
+      <p class="lead mb-4">Analiza y descubre el nivel de diversión de cualquier risa escrita con esta fantástica herramienta.</p>
+      <div class="d-grid gap-2 d-sm-flex justify-content-sm-center my-2">
+        <div class="row">
+          <div class="col-12 col-md-8">
+            <input id="code" value="" oninput="evaluatePython()" />
+          </div>
+          <div class="col-12 col-md-4">
+            <p id="output" class="display-3"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+<script>
+  const output = document.getElementById('output');
+  const code = document.getElementById('code');
+
+  function addToOutput(s) {
+    output.textContent = s;
+  }
+
+  // init Pyodide
+  async function main() {
+    let pyodide = await loadPyodide();
+    return pyodide;
+  }
+
+  let pyodideReadyPromise = main();
+
+  async function evaluatePython() {
+    let pyodide = await pyodideReadyPromise;
+    try {
+      let output = pyodide.runPython(`
+              def determine_laugh_points(laugh: str) -> int:
+                  if " " in laugh:
+                      raise ValueError("invalid laugh")
+
+                  if len(laugh) < 4:
+                      return 0
+
+                  # the longer is the laugh, the better
+                  score = len(laugh)
+
+                  # from now, we're going to ignore if it's upper or lower case
+                  #  by converting it to lower case
+                  normalized_laugh = laugh.lower()
+
+                  # the more different letters used (other than "j" and "a"), the better
+                  used_letters = set(normalized_laugh)
+                  used_letters.discard("j")
+                  used_letters.discard("a")
+                  score += 25 * len(used_letters)
+
+                  # two point less per regular "jaja"
+                  laugh_without_ja = normalized_laugh.replace("ja", "")
+                  score += 5 * len(laugh_without_ja)
+
+                  # 10x bonus if is in upper case
+                  if all(map(str.isupper, laugh)):
+                      score *= 10
+
+                  return int(score)
+
+              determine_laugh_points("${code.value}")
+          `);
+      addToOutput(output);
+    } catch (err) {
+      addToOutput(err);
+    }
+  }
+</script>
+</body>
+</html>
